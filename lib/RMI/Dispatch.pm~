@@ -1,6 +1,0 @@
-package RMI::Dispatch;
-
-sub dispatch{
-      my $ref = shift;
-      
-}
