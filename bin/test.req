@@ -1,0 +1,5 @@
+{
+ "class":  "Test",
+ "method": "new",
+ "params": { "foo": 123, "bar": 1 }
+}
