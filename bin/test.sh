@@ -1,1 +1,1 @@
-curl -d @test.req http://daniel.int.drjays.com/rmi
+curl -d @test.req http://daniel.impious.org/rmi

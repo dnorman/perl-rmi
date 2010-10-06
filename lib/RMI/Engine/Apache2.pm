@@ -1,30 +1,42 @@
-package RMI::Server::Apache2;
+package RMI::Engine::Apache2;
 
 use strict;
-use Carp;
-use attributes;
+use base 'RMI::Engine';
+#use attributes;
 use Apache2::Request;
 use Apache2::RequestIO;
 use Apache2::RequestUtil;
 use Apache2::Const -compile => qw(OK);
 use Data::Dumper;
 use JSON;
+use constant {
+      MAX_BYTES => 5_000_000
+};
 
-sub handler {
+my $service;
+sub handler : method{
+      my $self = shift;
+      my $obj = shift;
       my $r = shift;
       my $req = Apache2::Request->new($r);
 
-      my $config = $r->dir_config('BaseModule');
+
+      print "LOOK $self,$obj\n";
+      my $config = $r->dir_config();
       $r->no_cache(1);
 
       my $data = $req->param;
       my $buf;
-      $r->read($buf, $r->headers_in->{'content-length'});
-      my $ref = from_json($buf ) or die "Invalid JSON";
-      print Dumper( $ref, $config );
 
-      #RMI::Service->dispatch( $ref );
+      my $bytes = $r->headers_in->{'content-length'};
+      if($bytes > 0 && $bytes < MAX_BYTES){
+	    $r->read($buf, $bytes);
+	    my $ref = from_json($buf ) or die "Invalid JSON";
+	    print Dumper( $ref, $config );
 
+	    # $service ||= RMI::Service->new( base => $config->{BaseModule} );
+	    # $service->dispatch( $ref );
+      }
       return Apache2::Const::OK; # or another status constant
 }
 

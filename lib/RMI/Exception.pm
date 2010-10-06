@@ -10,12 +10,17 @@ has message => (
 );
 
 use overload 
-  '""'     => \&as_string,
+  '""'     => \&as_string_nl,
   fallback => 1;
 
 sub as_string {
     my ($self) = @_;
     return $self->message;
+}
+
+sub as_string_nl {
+    my ($self) = @_;
+    return $self->message . "\n";
 }
 
 around BUILDARGS => sub {

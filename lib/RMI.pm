@@ -4,57 +4,75 @@ use Module::Pluggable::Object;
 use RMI::Exception;
 use Class::MOP;
 
+# sub import {
+#       my $pkg = shift;
+#       print STDERR "IMPORT $pkg\n";
+#       $pkg->setup(@_);
+# }
+
 sub setup {
     my ( $class, %param ) = @_;
 
     $class->setup_engine(  delete $param{engine} );
-    $class->setup_class(   delete $param{engine} );
+    #$class->setup_service(   delete $param{class} );
 }
 
 sub setup_engine {
-    my ( $class, $engine ) = @_;
+      my ( $class, $engine ) = @_;
+      print STDERR "SETUP_ENGINE ($class)\n";
+      $engine = 'RMI::Engine::' . $engine if $engine;
+      my $eobj;
+      if ( $ENV{MOD_PERL} ) {
 
-    $engine = 'RMI::Engine::' . $engine if $engine;
+	    #my $meta = Class::MOP::get_metaclass_by_name($class);
+	    # create the apache method
+	    #$meta->add_method('apache' => sub { shift->engine->apache });
 
-    if ( $ENV{MOD_PERL} ) {
-	  #my $meta = Class::MOP::get_metaclass_by_name($class);
-	  # create the apache method
-	  #$meta->add_method('apache' => sub { shift->engine->apache });
+	    my ( $software, $version ) = $ENV{MOD_PERL} =~ /^(\S+)\/(\d+(?:[\.\_]\d+)+)/;
 
-	  my ( $software, $version ) = $ENV{MOD_PERL} =~ /^(\S+)\/(\d+(?:[\.\_]\d+)+)/;
+	    $version =~ s/_//g;
+	    $version =~ s/(\.[^.]+)\./$1/g;
 
-	  $version =~ s/_//g;
-	  $version =~ s/(\.[^.]+)\./$1/g;
+	    if ( $software eq 'mod_perl' ) {
+		  if ( !$engine ) {
+			if     ( $version >= 1.99922 ) {
+			      $engine = 'RMI::Engine::Apache2'
+			}elsif ( $version >= 1.9901  ) {
+			      $engine = 'RMI::Engine::Apache2'
+			}elsif ( $version >= 1.24    ) {
+			      $engine = 'RMI::Engine::Apache'
+			}else {
+			      RMI::Exception->throw( "Unsupported mod_perl version: $ENV{MOD_PERL}" );
+			}
+		  }
 
-	  if ( $software eq 'mod_perl' ) {
-		if ( !$engine ) {
-		      if     ( $version >= 1.99922 ) { $engine = 'RMI::Engine::Apache2'
-		      }elsif ( $version >= 1.9901  ) { $engine = 'RMI::Engine::Apache2'
-		      }elsif ( $version >= 1.24    ) { $engine = 'RMI::Engine::Apache'
-		      }else {
-			    RMI::Exception->throw( "Unsupported mod_perl version: $ENV{MOD_PERL}" );
-		      }
+		  # install the correct mod_perl handler
+		  if ( $version >= 1.9901 ) {
+			*handler = sub : method { $eobj->handler( @_ ) };
+		  }else {
+			*handler = sub ($$)     { $eobj->handler( @_ ) };
+		  }
 
-		}
+	    }else {
+		  RMI::Exception->throw( "Unsupported mod_perl: $ENV{MOD_PERL}" );
+	    }
+      }
 
-		# install the correct mod_perl handler
-		if ( $version >= 1.9901 ) {
-		      *handler = sub : method { shift->handle_request(@_) };
-		}else {
-		      *handler = sub ($$) { shift->handle_request(@_) };
-		}
+      unless ($engine) {
+	    $engine = 'RMI::Engine'
+      }
 
-	  }else {
-		RMI::Exception->throw( "Unsupported mod_perl: $ENV{MOD_PERL}" );
-	  }
-    }
+      print STDERR "ENGINE: $engine\n";
+      Class::MOP::load_class($engine);
+      $eobj = $engine->new;
 
-    Class::MOP::load_class($engine);
-
-    # engine instance
-    $class->engine( $engine->new );
+      # # engine instance
+      # $class->engine( $engine->new );
 }
 
+sub handle_request{
+      
+}
 
 sub locate_components {
     my $class  = shift;
@@ -75,7 +93,7 @@ sub locate_components {
     return @comps;
 }
 
-sub setup_components {
+sub setup_service {
     my $class = shift;
 
     my $config  = $class->config->{ setup_components };
@@ -105,4 +123,10 @@ sub setup_components {
             $class->components->{ $component } = $class->setup_component($component);
         }
     }
+
+
+    RMI::Service->new( base => $config->{BaseModule} );
+    
 }
+
+1;
