@@ -31,11 +31,10 @@ sub handler : method{
       my $bytes = $r->headers_in->{'content-length'};
       if($bytes > 0 && $bytes < MAX_BYTES){
 	    $r->read($buf, $bytes);
-	    my $ref = from_json($buf ) or die "Invalid JSON";
+	    my $ref = from_json( $buf ) or die "Invalid JSON";
 	    print Dumper( $ref, $config );
 
-	    # $service ||= RMI::Service->new( base => $config->{BaseModule} );
-	    # $service->dispatch( $ref );
+	    $self->{service}->dispatch( $ref );
       }
       return Apache2::Const::OK; # or another status constant
 }

@@ -1,9 +1,7 @@
 package RMI;
+use RMI::Service;
 
-use Module::Pluggable::Object;
-use RMI::Exception;
-use Class::MOP;
-
+use strict;
 # sub import {
 #       my $pkg = shift;
 #       print STDERR "IMPORT $pkg\n";
@@ -12,10 +10,12 @@ use Class::MOP;
 
 sub setup {
     my ( $class, %param ) = @_;
+    my $service = RMI::Service->new(baseclass => $class, %param);
 
-    $class->setup_engine(  delete $param{engine} );
-    #$class->setup_service(   delete $param{class} );
+    $class->setup_engine ( $param{engine} );
 }
+
+
 
 sub setup_engine {
       my ( $class, $engine ) = @_;
@@ -68,65 +68,6 @@ sub setup_engine {
 
       # # engine instance
       # $class->engine( $engine->new );
-}
-
-sub handle_request{
-      
-}
-
-sub locate_components {
-    my $class  = shift;
-    my $config = shift;
-
-    my @paths   = qw( ::Controller ::C ::Model ::M ::View ::V );
-    my $extra   = delete $config->{ search_extra } || [];
-
-    push @paths, @$extra;
-
-    my $locator = Module::Pluggable::Object->new(
-        search_path => [ map { s/^(?=::)/$class/; $_; } @paths ],
-        %$config
-    );
-
-    my @comps = $locator->plugins;
-
-    return @comps;
-}
-
-sub setup_service {
-    my $class = shift;
-
-    my $config  = $class->config->{ setup_components };
-
-    my @comps = sort { length $a <=> length $b }
-                $class->locate_components($config);
-    my %comps = map { $_ => 1 } @comps;
-
-
-    for my $component ( @comps ) {
-        # We pass ignore_loaded here so that overlay files for (e.g.)
-        # Model::DBI::Schema sub-classes are loaded - if it's in @comps
-        # we know M::P::O found a file on disk so this is safe
-
-        Catalyst::Utils::ensure_class_loaded( $component, { ignore_loaded => 1 } );
-
-        # Needs to be done as soon as the component is loaded, as loading a sub-component
-        # (next time round the loop) can cause us to get the wrong metaclass..
-        $class->_controller_init_base_classes($component);
-    }
-
-    for my $component (@comps) {
-        $class->components->{ $component } = $class->setup_component($component);
-        for my $component ($class->expand_component_module( $component, $config )) {
-            next if $comps{$component};
-            $class->_controller_init_base_classes($component); # Also cover inner packages
-            $class->components->{ $component } = $class->setup_component($component);
-        }
-    }
-
-
-    RMI::Service->new( base => $config->{BaseModule} );
-    
 }
 
 1;

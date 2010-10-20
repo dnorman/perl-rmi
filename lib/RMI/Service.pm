@@ -1,13 +1,19 @@
 package RMI::Service;
 
-use Class::Inspector;
+use Moose;
 
-sub new {
-      my $self = {};
-      my %params = @_;
-      $self->{base} = %params{base};
+use Module::Pluggable::Object;
+#use RMI::Exception;
+#use Class::MOP;
+#use Class::Inspector;
 
-      return bless ($self, _PACKAGE_);
+has 'baseclass' => (is => 'ro', required => 1);
+
+sub BUILD {
+      my $self = shift;
+      my $params = shift;
+
+      $self->setup_service;
 }
 
 sub dispatch{
@@ -16,8 +22,6 @@ sub dispatch{
 	    #
       }elsif($ref->{class}){
 	    print STDERR "GOT CLASS $ref->{class}\n";
-	    use Testobj;
-	    return Testobj->new;
       }else{
 	    die "Invalid instruction"
       }
@@ -28,9 +32,28 @@ sub getclass{
       my $class = shift;
       # HERE HERE HERE - this is crap
 
-      use Testobj;
-      return Testobj->new;
-
       ###my $fullclass = $self->{base} . '::'
 #	eval "require $class";
 }
+
+sub setup_service {
+    my $self = shift;
+
+    my $locator = Module::Pluggable::Object->new( search_path => $self->baseclass );
+    my @mods = $locator->plugins;
+
+    for my $module (@mods) {
+	  my $class = $module;
+	  $class =~ s/\:\:/\./;
+	  print STDERR "Registered: $component\n";
+         $self->classes->{ $class } = 1;#$class->setup_component($component);
+    #     for my $component ($class->expand_component_module( $component, $config )) {
+    #         next if $comps{$component};
+    #         $class->_controller_init_base_classes($component); # Also cover inner packages
+    #         $class->components->{ $component } = $class->setup_component($component);
+    #     }
+    }
+    
+}
+
+1;
