@@ -4,7 +4,10 @@ use strict;
 use base 'RMI';
 __PACKAGE__->setup();
 
-sub new { return bless({},__PACKAGE__) }
+sub new {
+      my $package = shift;
+      return bless({}, $package);
+}
 sub foo{ 123 }
 
 

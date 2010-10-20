@@ -7,21 +7,27 @@ use strict;
 #       print STDERR "IMPORT $pkg\n";
 #       $pkg->setup(@_);
 # }
+my %CLASSES;
 
+my $EOBJ;
 sub setup {
     my ( $class, %param ) = @_;
-    my $service = RMI::Service->new(baseclass => $class, %param);
+
 
     $class->setup_engine ( $param{engine} );
+
+    return 1 if $CLASSES{ $class };
+    my $service = RMI::Service->new(baseclass => $class, %param);
+    $EOBJ->register_service( $class, $service );
 }
 
 
-
 sub setup_engine {
+      return 1 if $EOBJ; # only do this once
+
       my ( $class, $engine ) = @_;
       print STDERR "SETUP_ENGINE ($class)\n";
       $engine = 'RMI::Engine::' . $engine if $engine;
-      my $eobj;
       if ( $ENV{MOD_PERL} ) {
 
 	    #my $meta = Class::MOP::get_metaclass_by_name($class);
@@ -48,9 +54,9 @@ sub setup_engine {
 
 		  # install the correct mod_perl handler
 		  if ( $version >= 1.9901 ) {
-			*handler = sub : method { $eobj->handler( @_ ) };
+			*handler = sub : method { $EOBJ->handler( @_ ) };
 		  }else {
-			*handler = sub ($$)     { $eobj->handler( @_ ) };
+			*handler = sub ($$)     { $EOBJ->handler( @_ ) };
 		  }
 
 	    }else {
@@ -64,7 +70,7 @@ sub setup_engine {
 
       print STDERR "ENGINE: $engine\n";
       Class::MOP::load_class($engine);
-      $eobj = $engine->new;
+      $EOBJ = $engine->new;
 
       # # engine instance
       # $class->engine( $engine->new );

@@ -10,53 +10,38 @@ use Apache2::Const -compile => qw(OK);
 use Data::Dumper;
 use JSON;
 use constant {
-      MAX_BYTES => 5_000_000
+      MAX_BYTES => 1_000_000
 };
 
 my $service;
 sub handler : method{
       my $self = shift;
-      my $obj = shift;
+      my $class = shift;
       my $r = shift;
       my $req = Apache2::Request->new($r);
 
-
-      print "LOOK $self,$obj\n";
       my $config = $r->dir_config();
       $r->no_cache(1);
 
       my $data = $req->param;
-      my $buf;
+      my $service = $self->service( $class )
+      my $request = $self->proto( $config->{protocol}, $service );
 
+      my $buf;
       my $bytes = $r->headers_in->{'content-length'};
       if($bytes > 0 && $bytes < MAX_BYTES){
-	    $r->read($buf, $bytes);
-	    my $ref = from_json( $buf ) or die "Invalid JSON";
-	    print Dumper( $ref, $config );
 
-	    $self->{service}->dispatch( $ref );
+	    $r->read($buf, $bytes);
+	    $request->dispatch(\$buf);
+      }else{
+	    return $request->error('Apache2 transport requires a valid content-length header (Max ' . MAX_BYTES . ' bytes)');
       }
+
+      print $proto->response_body;
+
       return Apache2::Const::OK; # or another status constant
 }
 
-sub get_mode{
-      my $obj = shift;
-      my $method = shift;
-
-      my $ref = $obj->can($method);
-      return undef unless $ref;
-
-      my %attr = map {$_ => 1} attributes::get( $ref );
-
-      if($attr{method}){
-	    return '';
-      }
-      if($attr{attrib}){
-	    return 'html';
-      }
-
-      return undef;
-}
 
 1;
 
