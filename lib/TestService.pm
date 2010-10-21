@@ -9,6 +9,7 @@ sub new {
       return bless({}, $package);
 }
 sub foo{ 123 }
-
+use Data::Dumper;
+sub dumper{ my $self = shift; Dumper( [@_] ) };
 
 1;

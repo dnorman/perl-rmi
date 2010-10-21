@@ -1,5 +1,10 @@
 {
  "class":  "TestService.Foo",
- "method": "new",
- "params": { "foo": 123, "bar": 1 }
+ "method": "dumper",
+ "params": {
+            "foo": 123,
+            "bar": 1,
+	    "someobj": { "class": "TestService.Bar", "method": "foo" },
+            "somehash": { "struct": { "A": "Ayyyy", "B":"Beeeeee" }  }
+           }
 }

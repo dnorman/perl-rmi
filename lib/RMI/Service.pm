@@ -16,26 +16,20 @@ sub BUILD {
       $self->setup_service;
 }
 
-sub dispatch{
-      my $self = shift;
-      my $ref = shift;
+sub dispatch_class {
+      my $self   = shift;
+      my $class  = shift;
+      my $method = shift;
+      my $params = shift;
       use Data::Dumper;
-      print STDERR Dumper('Dispatch', $ref);
-      if($ref->{object}){
-	    #
-      }elsif($ref->{class}){
-	    my $pkg = $self->class( $ref->{class} );
-	    if( $pkg ){
-		  my $coderef = $self->_getmethod($pkg,$ref->{method});
+      print STDERR Dumper($class,$method,$params);
 
-		  return $pkg->$coderef(  %{ $ref->{params} }  );
-	    }else{
-		  RMI::Exception->throw('Invalid class');
-	    }
-	    print STDERR "GOT CLASS $ref->{class}\n";
-	    
+      my $pkg = $self->class( $class );
+      if( $pkg ){
+	    my $coderef = $self->_getmethod($pkg, $method);
+	    return $pkg->$coderef(  %{ $params }  );
       }else{
-	    RMI::Exception->throw('Invalid instruction');
+	    RMI::Exception->throw('Invalid class');
       }
 }
 
@@ -44,9 +38,10 @@ sub _getmethod{
       my $pkg = shift;
       my $method = shift;
 
-      my $coderef = $self->{ $pkg }{ $method } && return $coderef;
+      my $coderef = $self->{ $pkg }{ $method };
+      return $coderef if $coderef;
 
-      $coderef = $obj->can($method) or RMI::Exception->throw("Method '$method' is invalid for class '$pkg'");
+      $coderef = $pkg->can($method) or RMI::Exception->throw("Method '$method' is invalid for class '$pkg'");
 
       #my %attr = map {$_ => 1} attributes::get( $coderef );
       #HERE - DECIDE WHAT attribs to require
@@ -55,6 +50,7 @@ sub _getmethod{
       # }
       return $self->{ $pkg }{ $method } = $coderef;
 }
+
 
 sub setup_service {
     my $self = shift;
@@ -73,7 +69,7 @@ sub setup_service {
 		$self->{classes}->{ $class } = $module;
 	  }
     }
-    
+
 }
 
 sub class{

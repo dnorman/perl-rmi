@@ -24,20 +24,18 @@ sub handler : method{
       $r->no_cache(1);
 
       my $data = $req->param;
-      my $service = $self->service( $class )
-      my $request = $self->proto( $config->{protocol}, $service );
+      my $service = $self->service( $class );
+      my $broker = $self->proto( $config->{protocol}, $service );
 
       my $buf;
       my $bytes = $r->headers_in->{'content-length'};
       if($bytes > 0 && $bytes < MAX_BYTES){
-
 	    $r->read($buf, $bytes);
-	    $request->dispatch(\$buf);
-      }else{
-	    return $request->error('Apache2 transport requires a valid content-length header (Max ' . MAX_BYTES . ' bytes)');
-      }
 
-      print $proto->response_body;
+	    print $broker->dispatch(\$buf);
+      }else{
+	    print $broker->error('Apache2 transport requires a valid content-length header (Max ' . MAX_BYTES . ' bytes)');
+      }
 
       return Apache2::Const::OK; # or another status constant
 }
