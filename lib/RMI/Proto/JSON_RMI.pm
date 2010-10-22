@@ -2,6 +2,8 @@ package RMI::Proto::JSON_RMI;
 use Moose;
 use base 'RMI::Proto';
 use JSON;
+use Scalar::Util 'blessed';
+
 
 
 sub dispatch{
@@ -10,7 +12,7 @@ sub dispatch{
 
       my $ref = from_json( ref($body) eq 'SCALAR' ? $$body : $body );
 
-      my $result =  $self->dispatch_ref( $ref );
+      my $result =  $self->_wrap(  $self->dispatch_ref( $ref ) );
 
       return to_json({
 		      status => 200,
@@ -20,7 +22,7 @@ sub dispatch{
 
 sub dispatch_ref{
       my ($self, $ref) = @_;
-      #use Data::Dumper;
+      use Data::Dumper;
       #print STDERR Dumper($ref);
 
       ref($ref) eq 'HASH' || RMI::Exception->throw('Must be a JSON object');
@@ -39,7 +41,8 @@ sub dispatch_ref{
 	    return $self->_checkparam( $ref->{struct} );
 
       }else{
-	    RMI::Exception->throw('Invalid instruction');
+	    print STDERR Dumper($ref);
+	    RMI::Exception->throw('Invalid instruction. object or class is required');
       }
 }
 
@@ -59,6 +62,31 @@ sub _checkparam{
       return \%out;
 }
 
+sub _wrap{
+      my $self = shift;
+      my $in = shift;
+
+      my $r = ref($in) || return $in;
+      my $c = blessed($in);
+
+      if($c){
+	    return $self->_freeze($in);
+      }elsif($r eq 'HASH'){
+	    return {
+		    struct => {
+			       map { $_ => $self->_wrap( $in->{$_} ) } keys %$in
+			      }
+		   };
+      }elsif($r eq 'ARRAY'){
+	    return [ map { $self->_wrap($_) } @$in ];
+      }
+}
+
+sub _freeze{
+      my $self = shift;
+      my $obj = shift;
+      return "OBJECTO!";
+}
 
 sub error{
       my $self = shift;

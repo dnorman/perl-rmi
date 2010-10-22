@@ -27,7 +27,7 @@ sub dispatch_class {
       my $pkg = $self->class( $class );
       if( $pkg ){
 	    my $coderef = $self->_getmethod($pkg, $method);
-	    return $pkg->$coderef(  %{ $params }  );
+	    return $pkg->$coderef(  $params  );
       }else{
 	    RMI::Exception->throw('Invalid class');
       }
