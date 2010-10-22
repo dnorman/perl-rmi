@@ -1,0 +1,6 @@
+{
+ "class":  "TestService.Foo",
+ "method": "new",
+ "params": {
+           }
+}

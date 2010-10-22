@@ -1,0 +1,7 @@
+{
+ "class":  "TestService.Foo",
+ "method": "echo",
+ "params": {
+	   "k": "v", "k2": "v2"
+           }
+}

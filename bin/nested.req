@@ -1,0 +1,13 @@
+{
+    "class":  "TestService.Foo",
+    "method": "echo",
+    "params": {
+	    "foo": "bar",
+	    "thingus": {
+	                "class":  "TestService.Foo",
+		        "method": "new",  
+		        "params": {}	   
+	                }
+
+           }
+}
